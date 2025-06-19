@@ -1,4 +1,7 @@
 Flask
 requests
-transformers
-torch
+deep-translator
+chromadb
+sentence-transformers
+gtts
+langdetect
