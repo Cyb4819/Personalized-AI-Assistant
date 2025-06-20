@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
+import logo from './assets/percepto_logo_white.png';
 
 function App() {
   const [query, setQuery] = useState('')
@@ -15,6 +16,36 @@ function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const synthRef = useRef(window.speechSynthesis);
   const inputRef = useRef(null);
+
+  // Dynamic greeting generator
+  function generateGreeting() {
+    const starters = [
+      "Where should we begin?",
+      "Ready when you are",
+      "What's in your mind?",
+      "What's on the agenda today?",
+      "What are you working on?",
+      "How can I help you today?",
+      "Let's make progress together!",
+      "Your ideas matter—share one!",
+      "What challenge can I solve for you?",
+      "Let's turn thoughts into action!",
+      "I'm here to help—what's next?",
+      "Curious about something? Ask away!",
+      "Let's create something amazing!",
+      "What would you like to explore today?",
+      "Your AI is listening—what's up?",
+      "Let's get started on your goals!",
+      "How can I make your day easier?",
+      "What's your next big idea?",
+      "Let's brainstorm together!",
+      "What can we achieve today?",
+      "I'm ready to assist—just say the word!"
+    ];
+    // Optionally, add more dynamic logic here
+    return starters[Math.floor(Math.random() * starters.length)];
+  }
+  const [greeting, setGreeting] = useState(generateGreeting());
 
   // Fetch supported languages from backend on mount
   useEffect(() => {
@@ -113,14 +144,20 @@ function App() {
     setLoading(false);
   }
 
+  useEffect(() => {
+    setGreeting(generateGreeting());
+    // eslint-disable-next-line
+  }, []);
+
   return (
-    <div style={{ minHeight: '100vh', background: '#18181a', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#18181a', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <img src={logo} alt="Percepto Logo" style={{ position: 'fixed', top: 20, left: 9, height: 100, zIndex: 100 }} />
       <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 32, letterSpacing: 1, textAlign: 'center' }}>
-        Personalized AI Assistant
+        Percepto - Personalized AI Assistant
       </div>
       <div style={{ width: '100%', maxWidth: 600, background: '#232328', borderRadius: 24, boxShadow: '0 4px 24px #0002', padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{ fontSize: 28, fontWeight: 600, marginBottom: 32, textAlign: 'center', color: '#fff' }}>
-          What are you working on?
+          {greeting}
         </div>
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#232328', borderRadius: 16, padding: 12, boxShadow: '0 2px 8px #0001', border: '1px solid #333', gap: 12 }}>
