@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
 function App() {
@@ -11,6 +11,10 @@ function App() {
   const [supportedLangs, setSupportedLangs] = useState([
     { code: 'en', label: 'English' }
   ])
+  const [showPlay, setShowPlay] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const synthRef = useRef(window.speechSynthesis);
+  const inputRef = useRef(null);
 
   // Fetch supported languages from backend on mount
   useEffect(() => {
@@ -23,6 +27,44 @@ function App() {
       })
       .catch(() => setSupportedLangs([{ code: 'en', label: 'English' }]))
   }, [])
+
+  useEffect(() => {
+    if (loading) {
+      setShowPlay(true);
+    } else {
+      setShowPlay(false);
+      setIsSpeaking(false);
+      if (synthRef.current && synthRef.current.speaking) {
+        synthRef.current.cancel();
+      }
+    }
+  }, [loading]);
+
+  // Play backend audio if present
+  useEffect(() => {
+    if (!answer) return;
+    // Find the last received audio_base64 from the last fetch
+    const lastAudio = window.lastAudioBase64;
+    if (lastAudio) {
+      const audio = new Audio(`data:audio/mp3;base64,${lastAudio}`);
+      audio.play();
+      // Optionally, store the audio element for stop control
+      window.currentBackendAudio = audio;
+    }
+  }, [answer]);
+
+  const handlePlayClick = () => {
+    if (synthRef.current.speaking) {
+      synthRef.current.cancel();
+    }
+    setIsSpeaking(false);
+    setShowPlay(false);
+    setQuery(''); // Only clear the input, do NOT clear answer or context
+    setLoading(false); // Ensure input is enabled
+    setTimeout(() => {
+      if (inputRef.current) inputRef.current.focus();
+    }, 0);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,10 +86,12 @@ function App() {
       const res = await fetch('http://127.0.0.1:5000/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, user_id: userId })
+        body: JSON.stringify({ query: q, user_id: userId, lang }) // Pass selected language to backend
       });
       const data = await res.json();
       let aiAnswer = data.answer;
+      // Store audio_base64 globally for use in useEffect
+      window.lastAudioBase64 = data.audio_base64;
       if (lang !== 'en') {
         // Translate answer back to selected language
         const tRes2 = await fetch('http://127.0.0.1:5000/translate', {
@@ -81,6 +125,7 @@ function App() {
         <form onSubmit={handleSubmit} style={{ width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#232328', borderRadius: 16, padding: 12, boxShadow: '0 2px 8px #0001', border: '1px solid #333', gap: 12 }}>
             <input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -89,6 +134,32 @@ function App() {
               disabled={loading}
               autoFocus
             />
+            {showPlay && (
+              <button
+                onClick={handlePlayClick}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  marginRight: 0,
+                  marginLeft: 0,
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: 32,
+                  width: 32
+                }}
+                aria-label="Stop voice"
+                type="button"
+              >
+                {/* White circle with black box stop icon */}
+                <svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="14" cy="14" r="14" fill="white"/>
+                  <rect x="9" y="9" width="10" height="10" rx="2" fill="black"/>
+                </svg>
+              </button>
+            )}
             <select value={lang} onChange={e => setLang(e.target.value)} style={{ background: '#232328', color: '#fff', border: '1px solid #444', borderRadius: 8, padding: '6px 12px', fontSize: 16 }}>
               {supportedLangs.map(l => (
                 <option key={l.code} value={l.code}>{l.label}</option>

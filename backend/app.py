@@ -110,19 +110,19 @@ def normalize_lang_code(detected_lang):
     return mapped
 
 # --- Voice output (text-to-speech) is disabled in backend for now ---
-# def text_to_speech_base64(text, lang='en'):
-#     try:
-#         gtts_lang = normalize_lang_code(lang)
-#         tts = gTTS(text=text, lang=gtts_lang)
-#         fp = io.BytesIO()
-#         tts.write_to_fp(fp)
-#         fp.seek(0)
-#         audio_bytes = fp.read()
-#         encoded_audio = base64.b64encode(audio_bytes).decode('utf-8')
-#         return encoded_audio
-#     except Exception as e:
-#         print(f"TTS Error: {e}")
-#         return None
+def text_to_speech_base64(text, lang='en'):
+    try:
+        gtts_lang = normalize_lang_code(lang)
+        tts = gTTS(text=text, lang=gtts_lang)
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+        audio_bytes = fp.read()
+        encoded_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        return encoded_audio
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        return None
 
 @app.route('/query', methods=['POST'])
 def handle_query():
@@ -163,22 +163,24 @@ def handle_query():
     prompt = f"{context}User: {translated_query}\nAI:"
     ai_response = get_ollama_answer(prompt)
 
-    # Translate answer back to user's original language if needed
-    if source_lang != 'en':
+    # Get target language from frontend (dropdown)
+    target_lang = data.get('lang', source_lang)
+
+    # Translate answer back to user's selected language if needed
+    if target_lang != 'en':
         try:
-            answer = GoogleTranslator(source='en', target=source_lang).translate(ai_response)
+            answer = GoogleTranslator(source='en', target=target_lang).translate(ai_response)
         except:
             answer = ai_response
     else:
         answer = ai_response
 
-    # --- Voice output (text-to-speech) is disabled in backend for now ---
-    # Generate voice in detected language
-    # audio_b64 = text_to_speech_base64(answer, lang=source_lang)
+    # Generate voice in the selected language (dropdown)
+    audio_b64 = text_to_speech_base64(answer, lang=target_lang)
 
     return jsonify({
         'answer': answer,
-        # 'audio_base64': audio_b64,
+        'audio_base64': audio_b64,
         'original_query': query,
         'translated_query': translated_query,
         'user_history': user_histories[user_id]['searchHistory']
